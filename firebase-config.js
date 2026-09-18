@@ -1,4 +1,3 @@
-js
 export const firebaseConfig = {
   apiKey: "AIzaSyBDvdI5kgOYZF_d3ZGQ6a2ge3iN5G5QO_s",
   authDomain: "ees-safety-platform.firebaseapp.com",
