@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>SAO 안전행동관찰</title>
+<meta name="description" content="모바일에서 2단계(기본정보 → 체크리스트·결과)로 작성하는 안전행동관찰(SAO) 기록 및 조회 웹앱">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E2600A' stroke-width='2.4'%3E%3Cpath d='M9 11l3 3L22 4'/%3E%3Cpath d='M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ============ LIST VIEW ============ -->
+  <section class="view" id="view-list">
+    <header class="topbar">
+      <div class="topbar-title">
+        <div class="eyebrow">SAO · Safety Action Observation</div>
+        <h1>안전행동관찰 기록</h1>
+      </div>
+      <span class="saving-dot" id="sync-dot" title="동기화"></span>
+    </header>
+
+    <div class="content list-content">
+      <div class="setup-banner" id="setup-banner" hidden>
+        ⚠️ Firebase 설정이 아직 완료되지 않았어요. <code>firebase-config.js</code> 파일에 본인의 Firebase 프로젝트 설정값을 입력해야 기록이 여러 기기에 저장·공유됩니다. 그 전까지는 이 브라우저에서만 임시로 동작해요. 자세한 방법은 README.md를 확인하세요.
+      </div>
+
+      <div class="hero">
+        <div class="eyebrow">오늘도 안전하게</div>
+        <h2>현장을 관찰하고 기록하세요</h2>
+        <p>작업자의 행동을 관찰해 2단계로 간단히 기록합니다. 1단계에서 기본 정보를, 2단계에서 체크리스트와 결과를 작성해요.</p>
+        <div class="stat-row">
+          <div class="stat"><div class="n mono" id="stat-total">0</div><div class="l">전체 기록</div></div>
+          <div class="stat"><div class="n mono" id="stat-month">0</div><div class="l">이번 달</div></div>
+          <div class="stat"><div class="n mono" id="stat-unsafe">0</div><div class="l">불안전 행동</div></div>
+        </div>
+      </div>
+
+      <div class="searchbar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" id="search-input" placeholder="장소, 지역, 관찰자로 검색">
+      </div>
+
+      <div class="filter-chips" id="filter-chips">
+        <button class="chip on" data-filter="all">전체</button>
+        <button class="chip" data-filter="draft">작성중</button>
+        <button class="chip" data-filter="done">완료</button>
+        <button class="chip" data-filter="unsafe">불안전 발견</button>
+      </div>
+
+      <div class="rec-list" id="rec-list"></div>
+
+      <div class="empty" id="empty-state" hidden>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <div class="t">아직 기록이 없어요</div>
+        <div class="s">오른쪽 아래 + 버튼으로 새 관찰을 시작하세요</div>
+      </div>
+    </div>
+
+    <button class="fab" id="fab-new" aria-label="새 관찰 시작">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </section>
+
+  <!-- ============ STEP 1 : 기본정보 ============ -->
+  <section class="view" id="view-step1" hidden>
+    <header class="topbar">
+      <button class="icon-btn" id="s1-back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <div class="topbar-title">
+        <div class="eyebrow">1 / 2 단계</div>
+        <h1>기본 정보</h1>
+      </div>
+      <div class="steps"><span class="on"></span><span></span></div>
+    </header>
+
+    <div class="content">
+      <div class="card">
+        <div class="section-title"><span class="dot"></span>관리 정보</div>
+        <div class="readonly-box">
+          <span>점검관리번호</span>
+          <span class="val mono" id="s1-manageno">자동생성</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span class="dot"></span>일시 · 장소</div>
+        <div class="row2">
+          <div class="field">
+            <label for="f-date">관찰일자 *</label>
+            <input type="date" id="f-date">
+          </div>
+          <div class="field">
+            <label>관찰시간</label>
+            <div class="row2">
+              <input type="time" id="f-time-start">
+              <input type="time" id="f-time-end">
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-area">관찰지역 *</label>
+          <input type="text" id="f-area" placeholder="예: 3동 반응공정 구역">
+        </div>
+        <div class="field">
+          <label for="f-place">상세장소 *</label>
+          <input type="text" id="f-place" placeholder="예: 2층 배관 점검통로">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span class="dot"></span>작업 정보</div>
+        <div class="field">
+          <label>작업유형 *</label>
+          <div class="pillgroup" id="f-worktype">
+            <button type="button" class="pill-opt on" data-val="조업">조업</button>
+            <button type="button" class="pill-opt" data-val="점검/정비">점검/정비</button>
+            <button type="button" class="pill-opt" data-val="공사(건설)">공사(건설)</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>작업자 근무형태 *</label>
+          <div class="pillgroup" id="f-shift">
+            <button type="button" class="pill-opt on" data-val="상시">상시</button>
+            <button type="button" class="pill-opt" data-val="교대">교대</button>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="f-workers">작업인원</label>
+            <input type="number" id="f-workers" min="0" inputmode="numeric" placeholder="0">
+          </div>
+          <div class="field">
+            <label for="f-observer">관찰자</label>
+            <input type="text" id="f-observer" placeholder="관찰자명">
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-content">작업내용 *</label>
+          <textarea id="f-content" placeholder="작업장소 + 작업내용을 간략하게 기록하세요"></textarea>
+          <span class="charcount" id="f-content-count">0 / 700 byte</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottombar">
+      <button class="btn btn-ghost" id="s1-cancel">취소</button>
+      <button class="btn btn-primary" id="s1-next">다음 · 체크리스트 작성</button>
+    </div>
+  </section>
+
+  <!-- ============ STEP 2 : 체크리스트 · 결과 ============ -->
+  <section class="view" id="view-step2" hidden>
+    <header class="topbar">
+      <button class="icon-btn" id="s2-back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <div class="topbar-title">
+        <div class="eyebrow">2 / 2 단계</div>
+        <h1>체크리스트 · 결과</h1>
+      </div>
+      <div class="steps"><span class="on"></span><span class="on"></span></div>
+    </header>
+
+    <div class="content">
+      <div class="summary-strip">
+        <div class="sum-tile"><div class="n mono" id="s2-checked-total">0</div><div class="l">관찰 항목 수</div></div>
+        <div class="sum-tile warn"><div class="n mono" id="s2-unsafe-total">0</div><div class="l">불안전 행동</div></div>
+      </div>
+
+      <div class="card" style="padding:14px 14px 6px">
+        <div class="section-title" style="margin-bottom:4px"><span class="dot"></span>안전행동관찰(SAO) Check Sheet</div>
+        <div class="hint" style="margin-bottom:10px">불안전한 행동을 관찰했다면 항목을 체크하고 상해구분과 내용을 기록하세요.</div>
+        <div id="checklist-root"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span class="dot"></span>결과서 — 격려한 안전행동</div>
+        <div class="field">
+          <label for="f-praise">관찰한 안전행동 · 격려 내용</label>
+          <textarea id="f-praise" placeholder="지속적인 안전작업을 격려하기 위해 취한 조치(칭찬한 내용)를 적어주세요"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span class="dot"></span>결과서 — 시정 및 재발방지</div>
+        <div class="field">
+          <label for="f-corrective">즉시 시정 내용 및 재발방지 조치</label>
+          <textarea id="f-corrective" placeholder="불안전한 행동에 대해 즉시 시정한 내용과 재발 방지를 위한 조치를 적어주세요"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottombar">
+      <button class="btn btn-ghost" id="s2-save-draft">임시저장</button>
+      <button class="btn btn-primary" id="s2-submit">제출 완료</button>
+    </div>
+  </section>
+
+  <!-- ============ DETAIL VIEW ============ -->
+  <section class="view" id="view-detail" hidden>
+    <header class="topbar">
+      <button class="icon-btn" id="d-back"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <div class="topbar-title">
+        <div class="eyebrow" id="d-eyebrow">SAO 기록</div>
+        <h1>관찰 상세</h1>
+      </div>
+      <button class="icon-btn" id="d-edit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+    </header>
+
+    <div class="content" id="detail-content"></div>
+
+    <div class="bottombar">
+      <button class="btn btn-danger-ghost" id="d-delete">삭제</button>
+      <button class="btn btn-primary" id="d-close">목록으로</button>
+    </div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
