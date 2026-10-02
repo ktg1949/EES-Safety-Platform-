@@ -130,7 +130,15 @@ import {
   function showView(name) {
     VIEW_IDS.forEach(function (k) { views[k].hidden = (k !== name); });
     window.scrollTo(0, 0);
+    var section = name === 'home' ? 'home' : (name.indexOf('sao') === 0 ? 'sao' : 'insp');
+    Array.prototype.forEach.call(document.querySelectorAll('.sb-link'), function (b) {
+      b.classList.toggle('active', b.getAttribute('data-section') === section);
+    });
   }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.sb-link'), function (btn) {
+    btn.addEventListener('click', function () { showView(btn.getAttribute('data-go')); });
+  });
 
   function uid() {
     try { return crypto.randomUUID(); } catch (e) { return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2); }
@@ -325,6 +333,14 @@ import {
     $('home-insp-total').textContent = inspList.length;
     $('home-insp-month').textContent = monthCount(inspList);
     $('home-insp-issue').textContent = inspList.reduce(function (s, r) { return s + issueCount('insp', r); }, 0);
+
+    var saoIssue = saoList.reduce(function (s, r) { return s + issueCount('sao', r); }, 0);
+    var inspIssue = inspList.reduce(function (s, r) { return s + issueCount('insp', r); }, 0);
+    $('home-total').textContent = saoList.length + inspList.length;
+    $('home-month').textContent = monthCount(saoList) + monthCount(inspList);
+    $('home-issue').textContent = saoIssue + inspIssue;
+    $('home-sao-strip').textContent = saoList.length + '건';
+    $('home-insp-strip').textContent = inspList.length + '건';
 
     var combined = saoList.map(function (r) { return {rec: r, mod: 'sao'}; })
       .concat(inspList.map(function (r) { return {rec: r, mod: 'insp'}; }));
