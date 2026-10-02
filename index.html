@@ -11,6 +11,49 @@
 </head>
 <body>
 
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2 3 6v6c0 5.2 3.8 9.4 9 10 5.2-.6 9-4.8 9-10V6l-9-4Z"/></svg>
+      </div>
+      <div>
+        <div class="sb-brand-title">EES 안전 플랫폼</div>
+        <div class="sb-brand-sub">산업안전보건 정보 공유</div>
+      </div>
+    </div>
+
+    <div class="sb-group-label">모니터링</div>
+    <nav class="sb-nav">
+      <button class="sb-link" data-section="home" data-go="home">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+        대시보드
+      </button>
+    </nav>
+
+    <div class="sb-group-label">안전관리 자료</div>
+    <nav class="sb-nav">
+      <button class="sb-link" data-section="sao" data-go="sao-list">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        SAO 안전행동관찰
+      </button>
+      <button class="sb-link" data-section="insp" data-go="insp-list">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4.5 8-11V5l-8-3-8 3v6c0 6.5 8 11 8 11Z"/><path d="M9 12l2 2 4-4"/></svg>
+        관리감독자 점검
+      </button>
+    </nav>
+
+    <div class="sb-foot">
+      <div class="sb-user">
+        <span class="sb-user-avatar">관</span>
+        <div>
+          <div class="sb-user-name">관리자</div>
+          <div class="sb-user-role">안전관리팀</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
 <div class="app" id="app">
 
   <!-- ============ HOME DASHBOARD ============ -->
@@ -18,7 +61,7 @@
     <header class="topbar">
       <div class="topbar-title">
         <div class="eyebrow">EES 안전 플랫폼</div>
-        <h1>안전관리 홈</h1>
+        <h1>대시보드</h1>
       </div>
       <span class="saving-dot" id="sync-dot" title="동기화"></span>
     </header>
@@ -28,10 +71,50 @@
         ⚠️ Firebase 설정이 아직 완료되지 않았어요. <code>firebase-config.js</code> 파일에 본인의 Firebase 프로젝트 설정값을 입력해야 기록이 여러 기기에 저장·공유됩니다. 그 전까지는 이 브라우저에서만 임시로 동작해요.
       </div>
 
-      <div class="hero">
-        <div class="eyebrow">오늘도 안전하게</div>
-        <h2>현장 안전관리 현황판</h2>
-        <p>안전행동관찰(SAO)과 관리감독자 점검을 한 곳에서 기록하고 관리하세요.</p>
+      <div class="dash-head">
+        <h2>대시보드</h2>
+        <p>안전관리 자료 현황</p>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat big">
+          <div class="stat-icon doc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6"/></svg></div>
+          <div class="n mono" id="home-total">0</div>
+          <div class="l">등록된 기록</div>
+        </div>
+        <div class="stat big">
+          <div class="stat-icon bar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15v3M12 11v7M17 7v11"/></svg></div>
+          <div class="n mono" id="home-month">0</div>
+          <div class="l">이번 달 기록</div>
+        </div>
+        <div class="stat big warn">
+          <div class="stat-icon warn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.6 2.6h15.8a1.8 1.8 0 0 0 1.6-2.6L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg></div>
+          <div class="n mono" id="home-issue">0</div>
+          <div class="l">조치 필요 건수</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span class="dot"></span>최근 등록 자료</div>
+        <div class="recent-list" id="recent-list"></div>
+        <div class="empty" id="recent-empty" style="padding:24px 10px" hidden>
+          <div class="t">등록된 자료가 없습니다</div>
+          <div class="s">아래 메뉴의 버튼으로 첫 기록을 시작해보세요</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><span class="dot"></span>모듈별 현황</div>
+        <div class="status-strip">
+          <div class="status-col">
+            <div class="lbl">SAO 안전행동관찰</div>
+            <div class="val mono" id="home-sao-strip">0건</div>
+          </div>
+          <div class="status-col">
+            <div class="lbl">관리감독자 점검</div>
+            <div class="val mono" id="home-insp-strip">0건</div>
+          </div>
+        </div>
       </div>
 
       <div class="module-card">
@@ -73,15 +156,6 @@
         <div class="mc-actions">
           <button class="mc-btn ghost" id="home-insp-list">목록 보기</button>
           <button class="mc-btn primary insp" id="home-insp-new">+ 새 점검</button>
-        </div>
-      </div>
-
-      <div class="card" style="padding-bottom:10px">
-        <div class="section-title"><span class="dot"></span>최근 기록</div>
-        <div class="recent-list" id="recent-list"></div>
-        <div class="empty" id="recent-empty" style="padding:24px 10px" hidden>
-          <div class="t">아직 기록이 없어요</div>
-          <div class="s">위 카드의 버튼으로 첫 기록을 시작해보세요</div>
         </div>
       </div>
     </div>
@@ -469,6 +543,7 @@
   </section>
 
   <div class="toast" id="toast"></div>
+</div>
 </div>
 
 <script type="module" src="app.js"></script>
