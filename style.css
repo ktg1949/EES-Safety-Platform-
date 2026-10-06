@@ -363,3 +363,8 @@ textarea{resize:vertical; min-height:78px; line-height:1.5}
 .status-col:last-child{border-right:none}
 .status-col .lbl{font-size:11px; color:var(--muted); font-weight:600}
 .status-col .val{font-size:15px; font-weight:800; margin-top:5px}
+
+.xl-btn{ flex:none; display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); background:var(--surface);
+  color:var(--ink); font-size:13px; font-weight:700; padding:8px 12px; border-radius:999px; cursor:pointer; font-family:inherit}
+.xl-btn svg{color:#1D7A4A}
+.xl-btn:active{background:var(--surface-2)}
