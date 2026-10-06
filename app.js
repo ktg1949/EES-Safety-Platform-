@@ -375,6 +375,121 @@ import {
   $('sao-list-home').addEventListener('click', function () { showView('home'); });
   $('insp-list-home').addEventListener('click', function () { showView('home'); });
 
+
+  // ================= excel export =================
+  function getFiltered(moduleKey) {
+    var list = records[moduleKey].slice();
+    var st = listState[moduleKey];
+    if (st.filter === 'draft') list = list.filter(function (r) { return r.status === 'draft'; });
+    if (st.filter === 'done') list = list.filter(function (r) { return r.status === 'submitted'; });
+    if (st.filter === 'unsafe' || st.filter === 'issue') list = list.filter(function (r) { return issueCount(moduleKey, r) > 0; });
+    if (st.search) {
+      var q = st.search.toLowerCase();
+      list = list.filter(function (r) {
+        var person = moduleKey === 'sao' ? r.observer : (r.inspector + ' ' + (r.target || ''));
+        return (r.area || '').toLowerCase().indexOf(q) > -1 || (r.place || '').toLowerCase().indexOf(q) > -1 || (person || '').toLowerCase().indexOf(q) > -1;
+      });
+    }
+    list.sort(function (a, b) { return (b.date || '').localeCompare(a.date || '') || (b.timeStart || '').localeCompare(a.timeStart || ''); });
+    return list;
+  }
+
+  function buildExportRows(moduleKey, list) {
+    var mod = MODULES[moduleKey];
+    var main = [], detail = [];
+    list.forEach(function (r) {
+      var status = r.status === 'submitted' ? '완료' : '작성중';
+      if (moduleKey === 'sao') {
+        main.push({
+          '관리번호': r.manageNo || '', '관찰일': r.date || '', '시작': r.timeStart || '', '종료': r.timeEnd || '', '상태': status,
+          '관찰지역': r.area || '', '상세장소': r.place || '', '작업내용': r.content || '', '작업유형': r.workType || '',
+          '근무조': r.shift || '', '작업자': r.workers || '', '관찰자': r.observer || '',
+          '불안전 건수': issueCount('sao', r), '칭찬·긍정사항': r.praise || '', '시정조치': r.corrective || ''
+        });
+      } else {
+        main.push({
+          '관리번호': r.manageNo || '', '점검일': r.date || '', '시작': r.timeStart || '', '종료': r.timeEnd || '', '상태': status,
+          '점검지역': r.area || '', '상세장소': r.place || '', '점검내용': r.content || '', '점검유형': r.inspType || '',
+          '점검대상': r.target || '', '점검자': r.inspector || '',
+          '미흡·불량 건수': issueCount('insp', r), '조치사항': r.action || '', '비고': r.note || ''
+        });
+      }
+      var cl = r.checklist || {};
+      mod.categories.forEach(function (cat) {
+        cat.items.forEach(function (it) {
+          var s = cl[it.id];
+          if (!s) return;
+          if (moduleKey === 'sao') {
+            if (!s.checked) return;
+            detail.push({ '관리번호': r.manageNo || '', '관찰일': r.date || '', '관찰지역': r.area || '', '상세장소': r.place || '',
+              '분류': cat.title, '항목': it.label, '심각도': s.severity || '', '상세내용': s.detail || '' });
+          } else {
+            if (!s.result || s.result === '해당없음') return;
+            detail.push({ '관리번호': r.manageNo || '', '점검일': r.date || '', '점검지역': r.area || '', '상세장소': r.place || '',
+              '분류': cat.title, '항목': it.label, '결과': s.result, '비고': s.note || '' });
+          }
+        });
+      });
+    });
+    return { main: main, detail: detail };
+  }
+
+  function loadXlsxLib() {
+    return new Promise(function (resolve, reject) {
+      if (window.XLSX) return resolve(window.XLSX);
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = function () { window.XLSX ? resolve(window.XLSX) : reject(new Error('xlsx')); };
+      s.onerror = function () { reject(new Error('load')); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function downloadBlob(blob, name) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+
+  function toCsv(rows) {
+    if (!rows.length) return '';
+    var keys = Object.keys(rows[0]);
+    var esc = function (v) { v = String(v == null ? '' : v); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    return [keys.map(esc).join(',')].concat(rows.map(function (r) { return keys.map(function (k) { return esc(r[k]); }).join(','); })).join('\r\n');
+  }
+
+  function exportList(moduleKey) {
+    var mod = MODULES[moduleKey];
+    var list = getFiltered(moduleKey);
+    if (!list.length) { toast('내보낼 기록이 없어요'); return; }
+    var rows = buildExportRows(moduleKey, list);
+    var stamp = todayStr().replace(/-/g, '');
+    var base = (moduleKey === 'sao' ? 'SAO_observation_list_' : 'Supervisor_inspection_list_') + stamp;
+    var detailName = moduleKey === 'sao' ? '불안전 상세' : '미흡·불량 상세';
+    var mainName = moduleKey === 'sao' ? '관찰 목록' : '점검 목록';
+    toast('엑셀 파일을 만들고 있어요…');
+    loadXlsxLib().then(function (XLSX) {
+      var wb = XLSX.utils.book_new();
+      var ws1 = XLSX.utils.json_to_sheet(rows.main);
+      ws1['!cols'] = Object.keys(rows.main[0]).map(function (k) { return { wch: /내용|조치|사항|비고|칭찬/.test(k) ? 36 : (/장소|지역/.test(k) ? 18 : 12) }; });
+      XLSX.utils.book_append_sheet(wb, ws1, mainName);
+      var ws2 = XLSX.utils.json_to_sheet(rows.detail.length ? rows.detail : [{ '안내': '해당 항목 없음' }]);
+      if (rows.detail.length) ws2['!cols'] = Object.keys(rows.detail[0]).map(function (k) { return { wch: /항목|상세내용|비고/.test(k) ? 34 : (/분류|장소|지역/.test(k) ? 20 : 13) }; });
+      XLSX.utils.book_append_sheet(wb, ws2, detailName);
+      var out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      downloadBlob(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), base + '.xlsx');
+      toast(list.length + '건을 엑셀로 내보냈어요');
+    }).catch(function () {
+      // fallback: CSV (opens in Excel, Korean-safe with BOM)
+      downloadBlob(new Blob(['﻿' + toCsv(rows.main)], { type: 'text/csv;charset=utf-8' }), base + '.csv');
+      toast('엑셀 도구를 불러오지 못해 CSV로 저장했어요 (엑셀에서 열 수 있어요)');
+    });
+  }
+  $('sao-export').addEventListener('click', function () { exportList('sao'); });
+  $('insp-export').addEventListener('click', function () { exportList('insp'); });
+
   // ================= list rendering =================
   function renderList(moduleKey) {
     var mod = MODULES[moduleKey];
